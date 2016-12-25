@@ -8,12 +8,15 @@ module.exports = {
         return range;
     },
     run: function(creep) {
-        if( !creep.action ) Population.registerAction(creep, Creep.action.upgrading, creep.room.controller);
+        if (!creep.action) {
+            Population.registerAction(creep, Creep.action.upgrading, creep.room.controller);
+        }
+        
         if( !creep.data.determinatedSpot ) {
             let args = {
                 spots: [{
                     pos: creep.room.controller.pos,
-                    range: 3
+                    range: 2
                 }],
                 checkWalkable: true,
                 where: null,
@@ -21,7 +24,7 @@ module.exports = {
             }
             let addSpot = s => args.spots.push({
                 pos: s.pos,
-                range: 1
+                range: 3
             });
             if( creep.room.structures.container.controller ){
                 creep.room.structures.container.controller.forEach(addSpot);
@@ -29,6 +32,7 @@ module.exports = {
             if( creep.room.structures.links.controller ){
                 creep.room.structures.links.controller.forEach(addSpot);
             }
+
             // dont take already taken
             let taken = [];
             let findInvalid = entry => {
@@ -38,17 +42,18 @@ module.exports = {
             _.forEach(Memory.population, findInvalid);
             // dont take miner spots
             let invalid = taken.slice(0);
-            let sourcesInRange = creep.room.controller.pos.findInRange(creep.room.sources, 4);
+            let sourcesInRange = creep.room.controller.pos.findInRange(creep.room.sources, 3);
             let addAdjacent = source => source.pos.adjacent.forEach(pos => invalid.push({x:pos.x,y:pos.y}))
             sourcesInRange.forEach(addAdjacent);
 
             args.where = pos => { return !_.some(invalid,{x:pos.x,y:pos.y}); };
             let spots = Room.fieldsInRange(args);
-            if( spots.length == 0 ){ 
+            if( spots.length == 0 ){
                 // no position found. allow pos near sources
                 args.where = pos => { return !_.some(taken,{x:pos.x,y:pos.y}); };
                 spots = Room.fieldsInRange(args);
             }
+
             if( spots.length > 0 ){
                 let spot = creep.pos.findClosestByPath(spots, {filter: pos => {
                     return !_.some(
@@ -62,20 +67,32 @@ module.exports = {
                     y: spot.y
                 }
             }
-            if( !creep.data.determinatedSpot ) logError('Unable to determine working location for ' + creep.name + ' in room ' + creep.pos.roomName);            else if( SAY_ASSIGNMENT ) creep.say(String.fromCharCode(9962), SAY_PUBLIC);
+            if( !creep.data.determinatedSpot ) logError('Unable to determine working location for ' + creep.name + ' in room ' + creep.pos.roomName);
+            else if( SAY_ASSIGNMENT ) creep.say(String.fromCharCode(9962), SAY_PUBLIC);
         }
-        if( creep.data.determinatedSpot ) {
+        if( creep.data.determinatedSpot && creep.data.determinatedSpot.x ) {
             if(CHATTY) creep.say('upgrading', SAY_PUBLIC);
             let range = this.approach(creep);
-            if( range == 0 ){
+            if( range <= 1 ){
                 let carryThreshold = (creep.data.body&&creep.data.body.work ? creep.data.body.work : (creep.carryCapacity/2));
                 if( creep.carry.energy <= carryThreshold ){
                     let store = creep.room.structures.links.controller.find(l => l.energy > 0);
                     if( !store ) store = creep.room.structures.container.controller.find(l => l.store.energy > 0);
-                    if( store ) creep.withdraw(store, RESOURCE_ENERGY);
+                    if( store ) {
+                        let result = creep.withdraw(store, RESOURCE_ENERGY);
+                        if (result !== OK) {
+                            let store = creep.pos.findClosestByPath(FIND_STRUCTURES, { filter: (structure) => {
+                                return structure.structureType == STRUCTURE_CONTAINER;
+                            } });
+                            result = creep.withdraw(store, RESOURCE_ENERGY);
+                            if (result !== OK && DEBUG) {
+                                logError(creep.name + ' could not withdraw from ' + store.pos.x + ' ' + store.pos.y + ': ' + result + ' - ' + global.translateErrorCode(result));
+                            }
+                        }
+                    }
                 }
                 creep.upgradeController(creep.room.controller);
             }
         }
     }
-}
+};
