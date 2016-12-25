@@ -62,8 +62,7 @@ module.exports = {
                     y: spot.y
                 }
             }
-            if( !creep.data.determinatedSpot ) logError('Unable to determine working location for upgrader in room ' + creep.pos.roomName);
-            else if( SAY_ASSIGNMENT ) creep.say(String.fromCharCode(9962), SAY_PUBLIC);
+            if( !creep.data.determinatedSpot ) logError('Unable to determine working location for ' + creep.name + ' in room ' + creep.pos.roomName);            else if( SAY_ASSIGNMENT ) creep.say(String.fromCharCode(9962), SAY_PUBLIC);
         }
         if( creep.data.determinatedSpot ) {
             if(CHATTY) creep.say('upgrading', SAY_PUBLIC);
