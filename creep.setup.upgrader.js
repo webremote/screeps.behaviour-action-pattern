@@ -1,5 +1,5 @@
 var setup = new Creep.Setup('upgrader');
-setup.minControllerLevel = 3;
+setup.minControllerLevel = 2;
 setup.maxMulti = function(room){
     let multi = 0;
     if( !room.storage || room.storage.store.energy > MIN_STORAGE_ENERGY[room.controller.level])
@@ -21,6 +21,7 @@ setup.maxCount = function(room){
         (room.structures.container.controller.length + room.structures.links.controller.length) == 0 )
         return 0;
     if( room.controller.level == 8 ) return 1;
+    if( room.controller.level <= 5 ) return 4;
     return room.storage ? Math.max(1, Math.floor((room.storage.store.energy-MAX_STORAGE_ENERGY[room.controller.level]) / 100000)) : 1;
 };
 setup.default = {
@@ -33,7 +34,7 @@ setup.default = {
 };
 setup.RCL = {
     1: setup.none,
-    2: setup.none,
+    2: setup.default,
     3: setup.default,
     4: setup.default,
     5: setup.default,
